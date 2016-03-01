@@ -870,7 +870,7 @@ Zotero.BetterBibTeX.init = ->
       csl = original.apply(@, arguments)
       if !(zoteroItem instanceof Zotero.Item) && Zotero.BetterBibTeX.pref.get('citekeyInCSLJSON')
         item = Zotero.URI._getURIObject(zoteroItem.uri, 'item')
-        csl['citation-label'] = Zotero.BetterBibTeX.keymanager.get({key: item.key, libraryID: item.libraryID || null}).citekey if item
+        csl['author-short'] = csl['citation-label'] = Zotero.BetterBibTeX.keymanager.get({key: item.key, libraryID: item.libraryID || null}).citekey if item
       return csl
     )(Zotero.Utilities.itemToCSLJSON)
 
