@@ -864,14 +864,16 @@ Zotero.BetterBibTeX.init = ->
         return table
       )(Zotero.ZotFile.wildcardTable)
 
-#  ### monkey-patch Zotero.Utilities.itemToCSLJSON to inject citekey as citation-label ###
-#  Zotero.Utilities.itemToCSLJSON = ((original) ->
-#    return (zoteroItem) ->
-#      csl = original.apply(@, arguments)
-#      if !(zoteroItem instanceof Zotero.Item)
-#        Zotero.BetterBibTeX.debug('zoteroItem:', Object.keys(zoteroItem))
-#      return csl
-#    )(Zotero.Utilities.itemToCSLJSON)
+  ### monkey-patch Zotero.Utilities.itemToCSLJSON to inject citekey as citation-label ###
+  Zotero.Utilities.itemToCSLJSON = ((original) ->
+    return (zoteroItem) ->
+      csl = original.apply(@, arguments)
+      if !(zoteroItem instanceof Zotero.Item)
+        Zotero.BetterBibTeX.debug('Zotero.Utilities.itemToCSLJSON:', zoteroItem.uri)
+        item = Zotero.URI._getURIObject(zoteroItem.uri, 'item')
+        csl['citation-label'] = Zotero.BetterBibTeX.keymanager.get({key: item.key, libraryID: item.libraryID}).citekey if item
+      return csl
+    )(Zotero.Utilities.itemToCSLJSON)
 
   @schomd.init()
 
