@@ -2,7 +2,7 @@ Components.utils.import('resource://gre/modules/Services.jsm')
 
 Zotero.BetterBibTeX.DB = new class
   cacheExpiry: Date.now() - (1000 * 60 * 60 * 24 * 30)
-  storageService: Components.classes['@mozilla.org/storage/service;1'].getService(Components.interfaces.mozIStorageService);
+  storageService: Components.classes['@mozilla.org/storage/service;1'].getService(Components.interfaces.mozIStorageService)
 
   load: (reason) ->
     Zotero.debug('DB.initialize (' + ( reason || 'startup') + ')')
@@ -257,8 +257,9 @@ Zotero.BetterBibTeX.DB = new class
       for k, v of params
         statement[k] = v
       values = []
+      column = null
       while statement.executeStep()
-        column ?= (statement.getColumnName(i) for i in [0...statement.columnCount])[0]
+        column ||= (statement.getColumnName(i) for i in [0...statement.columnCount])[0]
         values.push(statement.row[column])
       statement.finalize()
       return values
@@ -271,8 +272,9 @@ Zotero.BetterBibTeX.DB = new class
       for k, v of params
         statement[k] = v
       rows = []
+      columns = null
       while statement.executeStep()
-        columns ?= (statement.getColumnName(i) for i in [0...statement.columnCount])
+        columns ||= (statement.getColumnName(i) for i in [0...statement.columnCount])
         row = {}
         for col in columns
           row[col] = statement.row[col]
