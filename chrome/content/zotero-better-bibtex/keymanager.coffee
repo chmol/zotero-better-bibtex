@@ -128,7 +128,7 @@ Zotero.BetterBibTeX.keymanager = new class
     citekey = "zotero-#{if item.libraryID in [undefined, null] then 'null' else item.libraryID}-#{item.itemID}" if citekey in [undefined, null, '']
     return null unless citekey
 
-    libraryID = @integer(if item.libraryID == undefined then Zotero.DB.valueQuery('select libraryID from items where itemID = ?', [item.itemID]) else item.libraryID)
+    libraryID = @integer(if item.libraryID == undefined then Zotero.BetterBibTeX.DB.zotero.valueQuery('select libraryID from items where itemID = :itemID', {itemID: item.itemID}) else item.libraryID)
     itemID = @integer(item.itemID)
     in_use = (key.citekey for key in @db.keys.where((o) -> o.libraryID == libraryID && o.itemID != itemID && o.citekey.indexOf(citekey) == 0))
     postfix = { n: 0, c: '' }
@@ -226,7 +226,7 @@ Zotero.BetterBibTeX.keymanager = new class
 
     switch
       when !ids
-        items = Zotero.DB.query(@findKeysSQL)
+        items = Zotero.BetterBibTeX.DB.zotero.query(@findKeysSQL)
       when ids.length == 0
         items = []
       when ids.length == 1

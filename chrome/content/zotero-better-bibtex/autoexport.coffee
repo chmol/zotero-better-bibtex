@@ -58,7 +58,7 @@ Zotero.BetterBibTeX.auto = new class
     collections = Zotero.Collections.getCollectionsContainingItems(ids, true) || []
     collections = @withParentCollections(collections) unless collections.length == 0
     collections = ("collection:#{id}" for id in collections)
-    for libraryID in Zotero.DB.columnQuery("select distinct libraryID from items where itemID in #{@db.SQLite.Set(ids)}")
+    for libraryID in Zotero.BetterBibTeX.DB.zotero.columnQuery("select distinct libraryID as value from items where itemID in #{@db.SQLite.Set(ids)}")
       if libraryID
         collections.push("library:#{libraryID}")
       else
@@ -75,7 +75,7 @@ Zotero.BetterBibTeX.auto = new class
   withParentCollections: (collections) ->
     return collections if collections.length == 0
 
-    return Zotero.DB.columnQuery("
+    return Zotero.BetterBibTeX.DB.zotero.columnQuery("
       with recursive recursivecollections as (
         select collectionID, parentCollectionID
         from collections
@@ -86,7 +86,7 @@ Zotero.BetterBibTeX.auto = new class
         select p.collectionID, p.parentCollectionID
         from collections p
         join recursivecollections as c on c.parentCollectionID = p.collectionID
-      ) select distinct collectionID from recursivecollections")
+      ) select distinct collectionID as value from recursivecollections")
 
   clear: ->
     @db.autoexport.removeDataOnly()

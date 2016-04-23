@@ -144,7 +144,7 @@ Zotero.BetterBibTeX.DB = new class
     @sqlite.executeSimpleSQL('CREATE TABLE IF NOT EXISTS lokijs (name PRIMARY KEY, data)')
 
     Zotero.DB._getConnectionAsync().then(->
-      Zotero.BetterBibTeX.DB.Zotero = Zotero.DB._connection
+      Zotero.BetterBibTeX.DB.zotero.db = Zotero.DB._connection
     )
 
     @load()
@@ -229,6 +229,7 @@ Zotero.BetterBibTeX.DB = new class
         statement.name = name
         statement.data = serialized
         statement.execute()
+        statement.finalize()
       callback()
       return
 
@@ -244,8 +245,37 @@ Zotero.BetterBibTeX.DB = new class
       statement.name = name
       data = null
       while statement.executeStep()
-        data = statement.data
-      statement.reset()
+        data = statement.row.data
+      statement.finalize()
 
       callback(null)
       return
+
+  zotero:
+    columnQuery: (sql, params = {}) ->
+      statement = @db.createStatement(sql)
+      for k, v of params
+        statement[k] = v
+      values = []
+      while statement.executeStep()
+        column ?= (statement.getColumnName(i) for i in [0...statement.columnCount])[0]
+        values.push(statement.row[column])
+      statement.finalize()
+      return values
+
+    valueQuery: (sql, params = {}) ->
+      return @columnQuery(sql, params)[0]
+
+    query: (sql, params) ->
+      statement = @db.createStatement(sql)
+      for k, v of params
+        statement[k] = v
+      rows = []
+      while statement.executeStep()
+        columns ?= (statement.getColumnName(i) for i in [0...statement.columnCount])
+        row = {}
+        for col in columns
+          row[col] = statement.row[col]
+        rows.push(row)
+      statement.finalize()
+      return rows

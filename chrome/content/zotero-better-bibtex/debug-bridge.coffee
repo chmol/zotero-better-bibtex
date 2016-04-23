@@ -24,11 +24,11 @@ Zotero.BetterBibTeX.DebugBridge.methods.init = ->
     if !includeDeleted
       sql += ' AND A.itemID NOT IN (SELECT itemID FROM deletedItems)'
     if libraryID
-      sql += ' AND libraryID=? ORDER BY A.itemID'
-      ids = Zotero.DB.columnQuery(sql, libraryID)
+      sql += ' AND libraryID=:libraryID ORDER BY A.itemID'
+      ids = Zotero.BetterBibTeX.DB.zotero.columnQuery(sql, {libraryID})
     else
       sql += ' AND libraryID IS NULL ORDER BY A.itemID'
-      ids = Zotero.DB.columnQuery(sql)
+      ids = Zotero.BetterBibTeX.DB.zotero.columnQuery(sql)
     return @get(ids) || []
 
   return true
@@ -56,7 +56,7 @@ Zotero.BetterBibTeX.DebugBridge.methods.reset = ->
   Zotero.BetterBibTeX.auto.clear()
   Zotero.BetterBibTeX.keymanager.reset()
 
-  return true if Zotero.DB.valueQuery('select count(*) from items') == 0
+  return true if Zotero.BetterBibTeX.DB.zotero.valueQuery('select count(*) from items') == 0
   err = JSON.stringify((item.toArray() for item in Zotero.BetterBibTeX.safeGetAll()))
   throw "reset failed -- Library not empty -- #{err}"
 
@@ -72,7 +72,7 @@ Zotero.BetterBibTeX.DebugBridge.methods.librarySize = ->
     notes: 0
     attachments: 0
   }
-  for count in Zotero.DB.query("
+  for count in Zotero.BetterBibTeX.DB.zotero.query("
           select count(*) as nr, case itemtypeID when 1 then 'notes' when 14 then 'attachments' else 'references' end as itemType
           from items i
           where not i.itemID in (select d.itemID from deletedItems d)
@@ -154,9 +154,9 @@ Zotero.BetterBibTeX.DebugBridge.methods.find = (attribute, value, select) ->
          join itemData id on i.itemID = id.itemID
          join itemDataValues idv on idv.valueID = id.valueID
          join fields f on id.fieldID = f.fieldID
-         where f.fieldName = '#{attribute}' and not i.itemID in (select itemID from deletedItems) and idv.value = ?"
+         where f.fieldName = '#{attribute}' and not i.itemID in (select itemID from deletedItems) and idv.value = :value"
 
-  id = Zotero.DB.valueQuery(sql, [value])
+  id = Zotero.BetterBibTeX.DB.zotero.valueQuery(sql, {value})
   throw new Error("No item found with #{attribute} = '#{value}'") unless id
 
   id = parseInt(id)
