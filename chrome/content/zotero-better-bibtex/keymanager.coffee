@@ -218,6 +218,7 @@ Zotero.BetterBibTeX.keymanager = new class
     return @verify(key)
 
   scan: (ids, reason) ->
+    Zotero.BetterBibTeX.debug('keymanager.scan:', ids, reason)
     if reason in ['delete', 'trash']
       ids = (@integer(id) for id in ids || [])
       @db.keys.removeWhere((o) -> o.itemID in ids)
@@ -239,6 +240,7 @@ Zotero.BetterBibTeX.keymanager = new class
       itemID = @integer(item.itemID)
       citekey = @extract(item).__citekey__
       cached = @db.keys.findOne({itemID})
+      Zotero.BetterBibTeX.debug('keymanager.scan:', {itemID, citekey, cached})
 
       continue unless citekey && citekey != ''
 
