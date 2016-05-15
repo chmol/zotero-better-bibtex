@@ -1165,16 +1165,22 @@ Zotero.BetterBibTeX.itemChanged = notify: ((event, type, ids, extraData) ->
       parent = item.getSource()
       ids.push(parseInt(parent)) if parent
 
-  if ids.length > 0
-    @keymanager.scan(ids, event)
-    for itemID in ids
-      @keymanager.get({itemID})
+  ids.sort()
 
   Zotero.BetterBibTeX.debug('itemChanged items:', {event, ids})
 
-  for id in ids
-    @serialized.remove(id)
-    @cache.remove({itemID: id})
+  if ids.length > 0 && event in ['add', 'modify']
+    pinned = @keymanager.scan(ids, event)
+  else
+    pinned = []
+
+  for itemID in ids
+    @serialized.remove(itemID)
+    @cache.remove({itemID})
+    continue if itemID in pinned
+
+    @keymanager.remove({itemID})
+    @keymanager.get({itemID}) if event in ['add', 'modify']
 
   @auto.markIDs(ids, 'itemChanged')
 ).bind(Zotero.BetterBibTeX)
