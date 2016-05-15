@@ -639,10 +639,12 @@ Zotero.BetterBibTeX.init = ->
   @migrateData()
   @DB.purge()
 
-  if @pref.get('scanCitekeys')
+  if @pref.get('scanCitekeys') || Zotero.BetterBibTeX.DB.upgradeNeeded
     @flash('Citation key rescan', "Scanning 'extra' fields for fixed keys\nFor a large library, this might take a while")
-    @cache.reset('scanCitekeys')
-    @keymanager.scan()
+    changed = @keymanager.scan()
+    for itemID in changed
+      @cache.remove({itemID})
+    @auto.markIDs(changed, 'scanCiteKeys')
     @pref.set('scanCitekeys', false)
 
   Zotero.Translate.Export::Sandbox.BetterBibTeX = {

@@ -221,7 +221,7 @@ Zotero.BetterBibTeX.keymanager = new class
     if reason in ['delete', 'trash']
       ids = (@integer(id) for id in ids || [])
       @db.keys.removeWhere((o) -> o.itemID in ids)
-      return
+      return []
 
     switch
       when !ids
@@ -234,31 +234,29 @@ Zotero.BetterBibTeX.keymanager = new class
       else
         items = Zotero.Items.get(ids) || []
 
-    pinned = {}
+    changed = []
     for item in items
-      itemID = @integer(item.itemID)
       citekey = @extract(item).__citekey__
-      cached = @db.keys.findOne({itemID})
-
       continue unless citekey && citekey != ''
 
-      if !cached || cached.citekey != citekey || cached.citekeyFormat != null
-        libraryID = @integer(item.libraryID)
-        if cached
-          cached.citekey = citekey
-          cached.citekeyFormat = null
-          cached.libraryID = libraryID
-          @db.keys.update(cached)
-        else
-          cached = {itemID, libraryID, citekey: citekey, citekeyFormat: null}
-          @db.keys.insert(cached)
+      itemID = @integer(item.itemID)
+      cached = @db.keys.findOne({itemID})
+      continue if cached && cached.citekey == citekey && cached.citekeyFormat == null
 
-      pinned['' + item.itemID] = cached.citekey
+      if cached
+        cached.citekey = citekey
+        cached.citekeyFormat = null
+        @db.keys.update(cached)
+      else
+        cached = {itemID, libraryID, citekey: citekey, citekeyFormat: null}
+        @db.keys.insert(cached)
 
-    for itemID in ids || []
-      continue if pinned['' + itemID]
+      changed.push(itemID)
+
+    for itemID in changed
       @remove({itemID}, true)
       @get({itemID}, 'on-change')
+    return changed
 
   remove: (item, soft) ->
     @db.keys.removeWhere({itemID: @integer(item.itemID)})
