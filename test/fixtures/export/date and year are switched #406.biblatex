@@ -9,15 +9,6 @@
   title = {Introduction to {{Graph Theory}}}
 }
 
-@book{skubala_modellierung_2012,
-  author = {Skubala, Adam},
-  date = {2012-09-27},
-  location = {{Masterthesis, Fakultät Statistik}},
-  publisher = {{TU Dortmund}},
-  timestamp = {2015-02-24 12:14:36 +0100},
-  title = {Modellierung Niederfrequenter {{Schwingungen}} in Einem Elektrischen {{Energienetz}}}
-}
-
 @article{michigami_development_1995,
   author = {Michigami, Tsutomu},
   date = {1995-12},
@@ -28,6 +19,15 @@
   timestamp = {2015-02-24 12:14:36 +0100},
   title = {Development of a New Two-Input {{PSS}} to Control Low-Frequency Oscillation in Interconnecting Power Systems and the Study of a Low-Frequency Oscillation Model},
   volume = {115}
+}
+
+@book{skubala_modellierung_2012,
+  author = {Skubala, Adam},
+  date = {2012-09-27},
+  location = {{Masterthesis, Fakultät Statistik}},
+  publisher = {{TU Dortmund}},
+  timestamp = {2015-02-24 12:14:36 +0100},
+  title = {Modellierung Niederfrequenter {{Schwingungen}} in Einem Elektrischen {{Energienetz}}}
 }
 
 @report{brato_stability_2014,
