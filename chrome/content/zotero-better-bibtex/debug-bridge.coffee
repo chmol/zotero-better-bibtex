@@ -24,10 +24,10 @@ Zotero.BetterBibTeX.DebugBridge.methods.init = ->
     if !includeDeleted
       sql += ' AND A.itemID NOT IN (SELECT itemID FROM deletedItems)'
     if libraryID
-      sql += ' AND libraryID=? ORDER BY A.dateAdded'
+      sql += ' AND libraryID=? ORDER BY A.itemID'
       ids = Zotero.DB.columnQuery(sql, libraryID)
     else
-      sql += ' AND libraryID IS NULL ORDER BY A.dateAdded'
+      sql += ' AND libraryID IS NULL ORDER BY A.itemID'
       ids = Zotero.DB.columnQuery(sql)
     return @get(ids) || []
 
@@ -38,8 +38,8 @@ Zotero.BetterBibTeX.DebugBridge.methods.init = ->
       items = original.apply(@, arguments)
       if Array.isArray(items)
         items.sort((a, b) ->
-          return 0 if a.dateAdded == b.dateAdded
-          return -1 if a.dateAdded < b.dateAdded
+          return 0 if a.id == b.id
+          return -1 if a.id < b.id
           return 1
         )
       return items
