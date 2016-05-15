@@ -1173,13 +1173,14 @@ Zotero.BetterBibTeX.itemChanged = notify: ((event, type, ids, extraData) ->
     pinned = @keymanager.scan(ids, event)
   else
     pinned = []
+  Zotero.BetterBibTeX.debug('itemChanged: pinned', pinned)
 
   for itemID in ids
     @serialized.remove(itemID)
     @cache.remove({itemID})
     continue if itemID in pinned
 
-    @keymanager.remove({itemID})
+    @keymanager.remove({itemID}, true)
     @keymanager.get({itemID}) if event in ['add', 'modify']
 
   @auto.markIDs(ids, 'itemChanged')
