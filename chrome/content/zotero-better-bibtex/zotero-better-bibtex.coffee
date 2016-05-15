@@ -1165,7 +1165,10 @@ Zotero.BetterBibTeX.itemChanged = notify: ((event, type, ids, extraData) ->
       parent = item.getSource()
       ids.push(parseInt(parent)) if parent
 
-  @keymanager.scan(ids, event) if ids.length > 0
+  if ids.length > 0
+    @keymanager.scan(ids, event)
+    for itemID in ids
+      @keymanager.get({itemID})
 
   Zotero.BetterBibTeX.debug('itemChanged items:', {event, ids})
 

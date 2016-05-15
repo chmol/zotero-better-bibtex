@@ -1,49 +1,39 @@
 Zotero.BetterBibTeX.DebugBridge = {
   namespace: 'better-bibtex'
   methods: {}
+  sortItems: (a, b) ->
+    # Zotero only uses second-level precision
+    return -1 if a.dateAdded < b.dateAdded
+    return 1 if a.dateAdded > b.dateAdded
+    return -1 if a.id < b.id
+    return 1 if a.id > b.id
+    return 0
 }
 
 Zotero.BetterBibTeX.DebugBridge.methods.init = ->
-  return if Zotero.BetterBibTeX.DebugBridge.initialized
+  return false if Zotero.BetterBibTeX.DebugBridge.initialized
   Zotero.BetterBibTeX.DebugBridge.initialized = true
 
   Zotero.getActiveZoteroPane().show()
-
   Zotero.noUserInput = true
 
-  ###
-    replacing Zotero.Items.getAll to get items sorted. With random order I can't really implement stable
-    testing.
-  ###
-  Zotero.Items.getAll = (onlyTopLevel, libraryID, includeDeleted) ->
-    sql = 'SELECT A.itemID FROM items A'
-    if onlyTopLevel
-      sql += ' LEFT JOIN itemNotes B USING (itemID) LEFT JOIN itemAttachments C ON (C.itemID=A.itemID) WHERE B.sourceItemID IS NULL AND C.sourceItemID IS NULL'
-    else
-      sql += ' WHERE 1'
-    if !includeDeleted
-      sql += ' AND A.itemID NOT IN (SELECT itemID FROM deletedItems)'
-    if libraryID
-      sql += ' AND libraryID=? ORDER BY A.dateAdded'
-      ids = Zotero.DB.columnQuery(sql, libraryID)
-    else
-      sql += ' AND libraryID IS NULL ORDER BY A.dateAdded'
-      ids = Zotero.DB.columnQuery(sql)
-    return @get(ids) || []
-
-  return true
-
+  ### monkey-patching Zotero.Items.get to retrieve items sorted. With random order I can't really implement stable testing. ###
   Zotero.Items.get = ((original) ->
     return ->
       items = original.apply(@, arguments)
-      if Array.isArray(items)
-        items.sort((a, b) ->
-          return 0 if a.dateAdded == b.dateAdded
-          return -1 if a.dateAdded < b.dateAdded
-          return 1
-        )
+      items.sort(Zotero.BetterBibTeX.DebugBridge.sortItems) if Array.isArray(items)
       return items
     )(Zotero.Items.get)
+
+  for setter in ['setItems', 'setCollection', 'setAll']
+    Zotero.Translate.ItemGetter::[setter] = ((original) ->
+      return ->
+        r = original.apply(@, arguments)
+        @_itemsLeft.sort(Zotero.BetterBibTeX.DebugBridge.sortItems) if Array.isArray(@_itemsLeft)
+        return r
+      )(Zotero.Translate.ItemGetter::[setter])
+
+  return true
 
 Zotero.BetterBibTeX.DebugBridge.methods.reset = ->
   Zotero.BetterBibTeX.DebugBridge.methods.init()
@@ -76,6 +66,7 @@ Zotero.BetterBibTeX.DebugBridge.methods.import = (filename) ->
   file = Components.classes['@mozilla.org/file/local;1'].createInstance(Components.interfaces.nsILocalFile)
   file.initWithPath(filename)
   Zotero_File_Interface.importFile(file)
+
   return true
 
 Zotero.BetterBibTeX.DebugBridge.methods.librarySize = ->

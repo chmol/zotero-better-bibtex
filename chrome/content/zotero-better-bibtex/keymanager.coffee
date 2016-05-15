@@ -139,6 +139,7 @@ Zotero.BetterBibTeX.keymanager = new class
         postfix.c = @postfix(postfix.n)
 
     res = @set(item, citekey + postfix.c, pin)
+    Zotero.BetterBibTeX.debug('keymanager.assign:', {itemID: item.itemID, key: res})
     return res
 
   selected: (action) ->
