@@ -640,12 +640,14 @@ Zotero.BetterBibTeX.init = ->
   @DB.purge()
 
   if @pref.get('scanCitekeys') || Zotero.BetterBibTeX.DB.upgradeNeeded
-    @flash('Citation key rescan', "Scanning 'extra' fields for fixed keys\nFor a large library, this might take a while")
+    reason = if @pref.get('scanCitekeys') then 'requested by user' else 'after upgrade'
+    @flash("Citation key rescan #{reason}", "Scanning 'extra' fields for fixed keys\nFor a large library, this might take a while")
     changed = @keymanager.scan()
     for itemID in changed
       @cache.remove({itemID})
-    @auto.markIDs(changed, 'scanCiteKeys')
+    setTimeout((-> Zotero.BetterBibTeX.auto.markIDs(changed, 'scanCiteKeys')), 5000) if changed.length != 0
     @pref.set('scanCitekeys', false)
+    @flash('Citation key rescan finished')
 
   Zotero.Translate.Export::Sandbox.BetterBibTeX = {
     keymanager: {
