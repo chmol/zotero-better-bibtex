@@ -33,6 +33,18 @@ Zotero.BetterBibTeX.DebugBridge.methods.init = ->
 
   return true
 
+  Zotero.Items.get = ((original) ->
+    return ->
+      items = original.apply(@, arguments)
+      if Array.isArray(items)
+        items.sort((a, b) ->
+          return 0 if a.dateAdded == b.dateAdded
+          return -1 if a.dateAdded < b.dateAdded
+          return 1
+        )
+      return items
+    )(Zotero.Items.get)
+
 Zotero.BetterBibTeX.DebugBridge.methods.reset = ->
   Zotero.BetterBibTeX.DebugBridge.methods.init()
 
