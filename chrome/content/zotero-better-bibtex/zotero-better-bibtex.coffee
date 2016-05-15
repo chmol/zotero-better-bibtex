@@ -643,9 +643,9 @@ Zotero.BetterBibTeX.init = ->
     reason = if @pref.get('scanCitekeys') then 'requested by user' else 'after upgrade'
     @flash("Citation key rescan #{reason}", "Scanning 'extra' fields for fixed keys\nFor a large library, this might take a while")
     changed = @keymanager.scan()
-    for itemID in changed
-      @cache.remove({itemID})
-    setTimeout((-> Zotero.BetterBibTeX.auto.markIDs(changed, 'scanCiteKeys')), 5000) if changed.length != 0
+    #for itemID in changed
+    #  @cache.remove({itemID})
+    #setTimeout((-> Zotero.BetterBibTeX.auto.markIDs(changed, 'scanCiteKeys')), 5000) if changed.length != 0
     @pref.set('scanCitekeys', false)
     @flash('Citation key rescan finished')
 
