@@ -58,7 +58,7 @@ Zotero.BetterBibTeX.keymanager = new class
   clearDynamic: ->
     @db.keys.removeWhere((obj) -> obj.citekeyFormat)
 
-  extract: (item, remove=true) ->
+  extract: (item, remove = true) ->
     if item.getField
       throw("keymanager.extract: cannot remove key for non-serialized items") if remove
       item = {itemID: item.id, extra: item.getField('extra')}
