@@ -12,6 +12,7 @@ if not Zotero.BetterBibTeX
                   BetterBibTeXPatternParser
                   preferences
                   keymanager
+                  journalAbbrevs
                   web-endpoints
                   schomd
                   cayw

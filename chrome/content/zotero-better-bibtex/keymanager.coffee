@@ -4,7 +4,6 @@ Zotero.BetterBibTeX.keymanager = new class
   constructor: ->
     @db = Zotero.BetterBibTeX.DB
     @log = Zotero.BetterBibTeX.log
-    @resetJournalAbbrevs()
 
   ###
   three-letter month abbreviations. I assume these are the same ones that the
@@ -35,7 +34,7 @@ Zotero.BetterBibTeX.keymanager = new class
 
   prime: ->
     sql = "select i.itemID as itemID from items i where itemTypeID not in (1, 14) and not i.itemID in (select itemID from deletedItems)"
-    assigned = (key.itemID for key in @db.keys.find())
+    assigned = (key.itemID for key in @db.keys.data)
     sql += " and not i.itemID in #{Zotero.BetterBibTeX.DB.SQLite.Set(assigned)}" if assigned.length > 0
 
     items = Zotero.DB.columnQuery(sql)
@@ -53,61 +52,24 @@ Zotero.BetterBibTeX.keymanager = new class
     return
 
   reset: ->
-    @resetJournalAbbrevs()
-    @db.keys.removeWhere((obj) -> true) # causes cache drop
+    @db.keys.removeDataOnly()
     @scan()
-
-  resetJournalAbbrevs: ->
-    @journalAbbrevs = {
-      default: {
-        "container-title": { },
-        "collection-title": { },
-        "institution-entire": { },
-        "institution-part": { },
-        "nickname": { },
-        "number": { },
-        "title": { },
-        "place": { },
-        "hereinafter": { },
-        "classic": { },
-        "container-phrase": { },
-        "title-phrase": { }
-      }
-    }
 
   clearDynamic: ->
     @db.keys.removeWhere((obj) -> obj.citekeyFormat)
 
-  journalAbbrev: (item) ->
-    return item.journalAbbreviation if item.journalAbbreviation
-    return null unless item.itemType in ['journalArticle', 'bill', 'case', 'statute']
-
-    # don't even try to auto-abbrev arxiv IDs
-    return null if item.arXiv?.source == 'publicationTitle'
-
-    key = item.publicationTitle || item.reporter || item.code
-    return unless key
-    return unless Zotero.BetterBibTeX.pref.get('autoAbbrev')
-
-    style = Zotero.BetterBibTeX.pref.get('autoAbbrevStyle') || (style for style in Zotero.Styles.getVisible() when style.usesAbbreviation)[0].styleID
-
-    @journalAbbrevs['default']?['container-title']?[key] || Zotero.Cite.getAbbreviation(style, @journalAbbrevs, 'default', 'container-title', key)
-    return @journalAbbrevs['default']?['container-title']?[key] || key
-
-  extract: (item, insitu) ->
-    switch
-      when item.getField
-        throw("#{insitu}: cannot extract in-situ for real items") if insitu
-        item = {itemID: item.id, extra: item.getField('extra')}
-      when !insitu
-        item = {itemID: item.itemID, extra: item.extra.slice(0)}
+  extract: (item, remove=true) ->
+    if item.getField
+      throw("keymanager.extract: cannot remove key for non-serialized items") if remove
+      item = {itemID: item.id, extra: item.getField('extra')}
 
     return item unless item.extra
 
     m = @embeddedKeyRE.exec(item.extra) or @andersJohanssonKeyRE.exec(item.extra)
     return item unless m
 
-    item.extra = item.extra.replace(m[0], '').trim()
+    item.extra = item.extra.replace(m[0], '').trim() if remove
+
     item.__citekey__ = m[1].trim()
     delete item.__citekey__ if item.__citekey__ == ''
     return item
@@ -122,14 +84,18 @@ Zotero.BetterBibTeX.keymanager = new class
       n = parseInt(n / 26) - 1
     return postfix
 
+  # assign a new key to item, optionally pinning it
   assign: (item, pin) ->
-    {citekey, postfix: postfixStyle} = Zotero.BetterBibTeX.formatter.format(item)
-    citekey = "zotero-#{if item.libraryID in [undefined, null] then 'null' else item.libraryID}-#{item.itemID}" if citekey in [undefined, null, '']
-    return null unless citekey
 
-    libraryID = @integer(if item.libraryID == undefined then Zotero.DB.valueQuery('select libraryID from items where itemID = ?', [item.itemID]) else item.libraryID)
-    itemID = @integer(item.itemID)
-    in_use = (key.citekey for key in @db.keys.where((o) -> o.libraryID == libraryID && o.itemID != itemID && o.citekey.indexOf(citekey) == 0))
+    return unless @eligible(item)
+
+    {citekey, postfix: postfixStyle} = Zotero.BetterBibTeX.formatter.format(item)
+    citekey ||= "zotero-#{item.libraryID || 'null'}-#{item.itemID}"
+
+    itemID = @integer(if item.getField then item.id else item.itemID)
+    libraryID = @integer(item.libraryID ? Zotero.DB.valueQuery('select libraryID from items where itemID = ?', [itemID]))
+    current = @db.keys.findOne({itemID})?.citekey
+    in_use = (key.citekey for key in @db.keys.where((o) -> o.libraryID == libraryID && o.itemID != itemID && o.citekey.indexOf(citekey) == 0) when key != current)
     postfix = { n: 0, c: '' }
     while (citekey + postfix.c) in in_use
       postfix.n++
@@ -254,9 +220,6 @@ Zotero.BetterBibTeX.keymanager = new class
 
       changed.push(itemID)
 
-    for itemID in changed
-      @remove({itemID}, true)
-      @get({itemID}, 'on-change')
     return changed
 
   remove: (item, soft) ->
@@ -264,18 +227,13 @@ Zotero.BetterBibTeX.keymanager = new class
     @save(item) unless soft # only use soft remove if you know a hard set follows!
 
   eligible: (item) ->
-    type = item.itemType
-    if !type
-      item = Zotero.Items.get(item.itemID) unless item.itemTypeID
-      type = switch item.itemTypeID
-        when 1 then 'note'
-        when 14 then 'attachment'
-        else 'reference'
-    return false if type in ['note', 'attachment']
-    #item = Zotero.Items.get(item.itemID) unless item.getField
-    #return false unless item
-    #return !item.deleted
-    return true
+    return !(item.itemType in ['note', 'attachment']) if typeof item.itemType == 'string'
+    return !(item.itemTypeID in [1, 14]) if typeof item.itemTypeID == 'number'
+
+    if !item.getField
+      Zotero.BetterBibTeX.warn('funky item passed to keymanager.eligible', item)
+      item = Zotero.Items.get(item.itemID)
+    return !item.isAttachment() && !item.isNote()
 
   verify: (entry) ->
     return entry unless Zotero.BetterBibTeX.pref.get('debug') || Zotero.BetterBibTeX.testing
@@ -336,4 +294,3 @@ Zotero.BetterBibTeX.keymanager = new class
 
   alternates: (item) ->
     return Zotero.BetterBibTeX.formatter.alternates(item)
-

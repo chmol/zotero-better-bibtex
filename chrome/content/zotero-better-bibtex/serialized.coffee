@@ -152,20 +152,21 @@ Zotero.BetterBibTeX.serialized = new class
       else
         item = Zotero.Utilities.Internal.itemToExportFormat(zoteroItem)
 
-      switch
-        when !item
-          item = {itemID, itemType: 'cache-miss'}
-
-        when item.itemType in ['note', 'attachment']
-          @fixup(item, itemID)
-          item.attachmentIDs = []
-
+      if item
+        @fixup(item, itemID)
+        if item.itemType in ['note', 'attachment']
+          item.attachmentIDs = null
         else
-          @fixup(item, itemID)
-          item.attachmentIDs = zoteroItem.getAttachments() || []
+          item.attachmentIDs = zoteroItem.getAttachments()
+      else
+        item = {itemID, itemType: 'cache-miss'}
 
       @db.serialized.insert(item)
 
     return null if item.itemType == 'cache-miss'
-    item.attachments = (@get({itemID: id}) for id in item.attachmentIDs) unless item.itemType in ['note', 'attachment']
-    return JSON.parse(JSON.stringify(item))
+    item = JSON.parse(JSON.stringify(item))
+    if item.attachmentIDs
+      item.attachments = (@get({itemID: id}) for id in item.attachmentIDs)
+    else
+      item.attachments = []
+    return item
