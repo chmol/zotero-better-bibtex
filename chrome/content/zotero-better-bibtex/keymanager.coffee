@@ -39,11 +39,11 @@ Zotero.BetterBibTeX.keymanager = new class
     return _v
 
   cache: ->
-    return (@clone(key) for key in @db.keys.find())
+    return (@clone(key) for key in @db.keys.data)
 
   prime: ->
     sql = "select i.itemID as itemID from items i where itemTypeID not in (1, 14) and not i.itemID in (select itemID from deletedItems)"
-    assigned = (key.itemID for key in @db.keys.find())
+    assigned = (key.itemID for key in @db.keys.data)
     sql += " and not i.itemID in #{Zotero.BetterBibTeX.DB.SQLite.Set(assigned)}" if assigned.length > 0
 
     items = Zotero.DB.columnQuery(sql)
