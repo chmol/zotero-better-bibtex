@@ -61,26 +61,24 @@ Zotero.BetterBibTeX.keymanager = new class
     return
 
   reset: ->
-    @db.keys.removeWhere((obj) -> true) # causes cache drop
+    @db.keys.removeDataOnly()
     @scan()
 
   clearDynamic: ->
     @db.keys.removeWhere((obj) -> obj.citekeyFormat)
 
-  extract: (item, insitu) ->
-    switch
-      when item.getField
-        throw("#{insitu}: cannot extract in-situ for real items") if insitu
-        item = {itemID: item.id, extra: item.getField('extra')}
-      when !insitu
-        item = {itemID: item.itemID, extra: item.extra.slice(0)}
+  extract: (item, remove = true) ->
+    if item.getField
+      throw("keymanager.extract: cannot remove key for non-serialized items") if remove
+      item = {itemID: item.id, extra: item.getField('extra')}
 
     return item unless item.extra
 
     m = @embeddedKeyRE.exec(item.extra) or @andersJohanssonKeyRE.exec(item.extra)
     return item unless m
 
-    item.extra = item.extra.replace(m[0], '').trim()
+    item.extra = item.extra.replace(m[0], '').trim() if remove
+
     item.__citekey__ = m[1].trim()
     delete item.__citekey__ if item.__citekey__ == ''
     return item
